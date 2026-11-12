@@ -1,0 +1,346 @@
+"use client";
+
+import { useId, useRef, useState, useSyncExternalStore, type FormEvent, type KeyboardEvent } from "react";
+import { AlertCircle, Check, Lock, PlusCircle, ShieldAlert } from "lucide-react";
+import {
+  AUTHOR_STORAGE_KEY,
+  MAX_AUTHOR_LENGTH,
+  MAX_NOTE_CONTENT_LENGTH,
+  NOTE_COLORS,
+  NOTE_COLOR_THEMES,
+  RODO_CLAUSE,
+  type ColorLegend,
+  type NoteColor,
+} from "@/lib/constants";
+
+interface QuickAddBarProps {
+  colorLegend: ColorLegend;
+  isLocked: boolean;
+  isOffline: boolean;
+  onAddNote: (payload: {
+    content: string;
+    authorName: string;
+    color: NoteColor;
+  }) => Promise<boolean>;
+}
+
+const AUTHOR_EVENT = "wskz-author-storage";
+
+function subscribeAuthorStore(callback: () => void) {
+  window.addEventListener("storage", callback);
+  window.addEventListener(AUTHOR_EVENT, callback);
+  return () => {
+    window.removeEventListener("storage", callback);
+    window.removeEventListener(AUTHOR_EVENT, callback);
+  };
+}
+
+function getAuthorSnapshot(): string {
+  try {
+    return (window.localStorage.getItem(AUTHOR_STORAGE_KEY) ?? "").slice(
+      0,
+      MAX_AUTHOR_LENGTH
+    );
+  } catch {
+    return "";
+  }
+}
+
+export function QuickAddBar({
+  colorLegend,
+  isLocked,
+  isOffline,
+  onAddNote,
+}: QuickAddBarProps) {
+  const [selectedColor, setSelectedColor] = useState<NoteColor>("yellow");
+  const [content, setContent] = useState("");
+  const storedAuthor = useSyncExternalStore(
+    subscribeAuthorStore,
+    getAuthorSnapshot,
+    () => ""
+  );
+  const [draftAuthor, setDraftAuthor] = useState<string | null>(null);
+  const authorName = draftAuthor ?? storedAuthor;
+
+  const [touchedContent, setTouchedContent] = useState(false);
+  const [contentError, setContentError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const authorInputRef = useRef<HTMLInputElement>(null);
+  const colorGroupName = useId();
+  const contentId = useId();
+  const authorId = useId();
+  const errorId = useId();
+
+  const handleAuthorChange = (nextValue: string) => {
+    const trimmedMax = nextValue.slice(0, MAX_AUTHOR_LENGTH);
+    setDraftAuthor(trimmedMax);
+    try {
+      window.localStorage.setItem(AUTHOR_STORAGE_KEY, trimmedMax);
+      window.dispatchEvent(new Event(AUTHOR_EVENT));
+    } catch {
+      // Brak dostepu do localStorage
+    }
+  };
+
+  const validateContent = (raw: string): string | null => {
+    const trimmed = raw.trim();
+    if (!trimmed) {
+      return "Wpisz treść pomysłu przed przyklejeniem karteczki.";
+    }
+    if (trimmed.length > MAX_NOTE_CONTENT_LENGTH) {
+      return `Treść nie może przekraczać ${MAX_NOTE_CONTENT_LENGTH} znaków.`;
+    }
+    return null;
+  };
+
+  const handleContentChange = (nextValue: string) => {
+    const capped = nextValue.slice(0, MAX_NOTE_CONTENT_LENGTH);
+    setContent(capped);
+    if (contentError && validateContent(capped) === null) {
+      setContentError(null);
+    }
+    if (submitError) {
+      setSubmitError(null);
+    }
+  };
+
+  const submitForm = async () => {
+    if (isLocked) {
+      setSubmitError("Tablica jest obecnie w trybie tylko do odczytu.");
+      return;
+    }
+    if (isOffline) {
+      setSubmitError("Jesteś offline — dodawanie karteczek wymaga połączenia z siecią.");
+      return;
+    }
+
+    const validationMessage = validateContent(content);
+    if (validationMessage) {
+      setTouchedContent(true);
+      setContentError(validationMessage);
+      textareaRef.current?.focus();
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const cleanAuthor = authorName.trim() || "Anonimowy Student";
+      try {
+        if (authorName.trim()) {
+          window.localStorage.setItem(AUTHOR_STORAGE_KEY, authorName.trim());
+        }
+      } catch {
+        // Ignoruj bledy localStorage
+      }
+
+      const ok = await onAddNote({
+        content: content.trim(),
+        authorName: cleanAuthor,
+        color: selectedColor,
+      });
+
+      if (ok) {
+        setContent("");
+        setTouchedContent(false);
+        setContentError(null);
+        textareaRef.current?.focus();
+      }
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error ? err.message : "Nie udało się dodać karteczki."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleFormSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    await submitForm();
+  };
+
+  const handleTextareaKeyDown = async (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    // IME-safe shortcut submit (Ctrl+Enter / Cmd+Enter)
+    if (
+      !event.nativeEvent.isComposing &&
+      event.keyCode !== 229 &&
+      event.key === "Enter" &&
+      (event.ctrlKey || event.metaKey)
+    ) {
+      event.preventDefault();
+      await submitForm();
+    }
+  };
+
+  const remainingChars = MAX_NOTE_CONTENT_LENGTH - content.length;
+  const activeTheme = NOTE_COLOR_THEMES[selectedColor];
+
+  return (
+    <section
+      aria-label="Pasek szybkiego dodawania karteczki"
+      className="no-print relative z-20 rounded-2xl border border-stone-300/90 bg-white/95 p-4 shadow-md backdrop-blur-md md:sticky md:top-3"
+    >
+      {isLocked ? (
+        <div
+          role="status"
+          className="mb-3 flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-950"
+        >
+          <Lock className="h-4 w-4 shrink-0 text-amber-700" aria-hidden="true" />
+          <span>
+            Tablica jest obecnie zamknięta przez Zarząd (tryb tylko do odczytu). Nowe karteczki są wstrzymane.
+          </span>
+        </div>
+      ) : null}
+
+      <form onSubmit={handleFormSubmit} noValidate className="space-y-3">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
+          {/* Kolumna 1: Kolory + kategoria z legendy + autor */}
+          <div className="flex flex-col gap-2.5 lg:w-80 lg:shrink-0">
+            <fieldset disabled={isLocked || isSubmitting} className="space-y-1.5">
+              <legend className="text-xs font-semibold text-stone-700">
+                1. Wybierz kolor (kategoria z legendy)
+              </legend>
+              <div className="flex flex-wrap items-center gap-2">
+                {NOTE_COLORS.map((color) => {
+                  const theme = NOTE_COLOR_THEMES[color];
+                  const isSelected = selectedColor === color;
+                  const label = colorLegend[color];
+                  return (
+                    <label
+                      key={color}
+                      title={label}
+                      className={`relative flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border-2 transition-transform ${
+                        theme.bgClass
+                      } ${
+                        isSelected
+                          ? "scale-105 border-stone-900 shadow-sm ring-2 ring-stone-900/20"
+                          : "border-stone-400/70 hover:scale-105"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name={colorGroupName}
+                        value={color}
+                        checked={isSelected}
+                        onChange={() => setSelectedColor(color)}
+                        aria-label={label}
+                        className="sr-only"
+                      />
+                      {isSelected ? (
+                        <Check className="h-4 w-4 stroke-[2.5] text-stone-900" aria-hidden="true" />
+                      ) : null}
+                    </label>
+                  );
+                })}
+              </div>
+              <p
+                aria-live="polite"
+                className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium text-stone-900 ${activeTheme.bgClass} ${activeTheme.borderClass}`}
+              >
+                <span className="h-2 w-2 rounded-full bg-stone-900/60" aria-hidden="true" />
+                <span>{colorLegend[selectedColor]}</span>
+              </p>
+            </fieldset>
+
+            <div>
+              <label
+                htmlFor={authorId}
+                className="mb-1 block text-xs font-semibold text-stone-700"
+              >
+                Twój podpis / Imię
+              </label>
+              <input
+                ref={authorInputRef}
+                id={authorId}
+                type="text"
+                value={authorName}
+                onChange={(e) => handleAuthorChange(e.target.value)}
+                disabled={isLocked || isSubmitting}
+                maxLength={MAX_AUTHOR_LENGTH}
+                placeholder="np. Anna K. (opcjonalnie)"
+                autoComplete="name"
+                className="w-full rounded-xl border border-stone-300 bg-stone-50/70 px-3 py-2 text-sm text-stone-900 placeholder:text-stone-400 focus:border-stone-900 focus:bg-white focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+              />
+            </div>
+          </div>
+
+          {/* Kolumna 2: Tresc karteczki (limit 400) + przycisk */}
+          <div className="flex flex-1 flex-col gap-2">
+            <div className="flex items-center justify-between gap-2">
+              <label htmlFor={contentId} className="text-xs font-semibold text-stone-700">
+                2. Treść pomysłu lub uwagi (LIFO — nowa pojawi się pierwsza u góry)
+              </label>
+              <span
+                className={`text-xs font-semibold tabular-nums ${
+                  remainingChars <= 30 ? "text-rose-700" : "text-stone-500"
+                }`}
+              >
+                {content.length}/{MAX_NOTE_CONTENT_LENGTH}
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-2.5 sm:flex-row sm:items-stretch">
+              <div className="flex-1">
+                <textarea
+                  ref={textareaRef}
+                  id={contentId}
+                  rows={3}
+                  maxLength={MAX_NOTE_CONTENT_LENGTH}
+                  value={content}
+                  disabled={isLocked || isSubmitting}
+                  onChange={(e) => handleContentChange(e.target.value)}
+                  onBlur={() => {
+                    if (content.length > 0 || touchedContent) {
+                      setTouchedContent(true);
+                      setContentError(validateContent(content));
+                    }
+                  }}
+                  onKeyDown={handleTextareaKeyDown}
+                  aria-invalid={Boolean(contentError)}
+                  aria-describedby={contentError ? errorId : undefined}
+                  placeholder="Wpisz pomysł, propozycję badania, wydarzenia lub ważną kwestię organizacyjną... (Ctrl+Enter wysyła)"
+                  className={`h-full min-h-[86px] w-full resize-none rounded-xl border px-3.5 py-2.5 text-sm leading-relaxed text-stone-900 placeholder:text-stone-400 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 ${
+                    contentError
+                      ? "border-rose-500 bg-rose-50/40 focus:border-rose-600"
+                      : "border-stone-300 bg-stone-50/70 focus:border-stone-900 focus:bg-white"
+                  }`}
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLocked || isSubmitting || isOffline}
+                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-stone-900 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-stone-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-900 disabled:cursor-not-allowed disabled:bg-stone-300 disabled:text-stone-600 sm:min-w-[180px]"
+              >
+                <PlusCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+                <span>{isSubmitting ? "Przyklejanie..." : "Przyklej karteczkę"}</span>
+              </button>
+            </div>
+
+            {contentError || submitError ? (
+              <p
+                id={errorId}
+                role="alert"
+                className="flex items-center gap-1.5 text-xs font-medium text-rose-700"
+              >
+                <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                <span>{contentError ?? submitError}</span>
+              </p>
+            ) : null}
+          </div>
+        </div>
+
+        {/* Klauzula RODO bezposrednio pod formularzem */}
+        <p className="flex items-start gap-1.5 border-t border-stone-200/80 pt-2.5 text-[11px] leading-relaxed text-stone-600">
+          <ShieldAlert className="mt-0.5 h-3.5 w-3.5 shrink-0 text-stone-500" aria-hidden="true" />
+          <span>{RODO_CLAUSE}</span>
+        </p>
+      </form>
+    </section>
+  );
+}

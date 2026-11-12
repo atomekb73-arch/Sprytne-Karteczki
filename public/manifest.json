@@ -1,0 +1,32 @@
+{
+  "name": "Sprytne Karteczki — Karteczki WSKZ",
+  "short_name": "Karteczki WSKZ",
+  "description": "Ultralekka wirtualna tablica pomysłów i burz mózgów dla Kół Naukowych oraz Samorządu Studenckiego WSKZ.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#F5F5F4",
+  "theme_color": "#1C1917",
+  "lang": "pl-PL",
+  "categories": ["education", "productivity", "collaboration"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

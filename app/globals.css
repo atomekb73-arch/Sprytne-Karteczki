@@ -1,0 +1,121 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
+}
+
+/* Subtelna siatka kropek na tle biurowej/korkowej tablicy (stone-100) */
+.bg-cork-dots {
+  background-color: #f5f5f4;
+  background-image: radial-gradient(circle, #d6d3d1 1.15px, transparent 1.15px);
+  background-size: 20px 20px;
+}
+
+/* Realistyczny cien karteczki samoprzylepnej oraz delikatnie zagiety prawy dolny rog */
+.sticky-note-paper {
+  box-shadow:
+    0 1px 2px rgba(28, 25, 23, 0.08),
+    0 6px 14px -3px rgba(28, 25, 23, 0.14),
+    inset 0 -1px 0 rgba(28, 25, 23, 0.06);
+}
+
+.sticky-note-curl::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 22px;
+  height: 22px;
+  pointer-events: none;
+  background: linear-gradient(
+    135deg,
+    rgba(28, 25, 23, 0.08) 0%,
+    rgba(28, 25, 23, 0.14) 48%,
+    rgba(245, 245, 244, 0.92) 52%,
+    rgba(255, 255, 255, 0.65) 100%
+  );
+  border-top-left-radius: 3px;
+}
+
+/* Odroczenie renderowania karteczek ponizej pierwszego ekranu */
+.note-deferred {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 260px;
+}
+
+/* Blokada przewijania tla pod oknami modalnymi <dialog> */
+dialog:modal {
+  overscroll-behavior: contain;
+}
+
+dialog::backdrop {
+  background: rgba(28, 25, 23, 0.52);
+  backdrop-filter: blur(2px);
+  overscroll-behavior: contain;
+  overflow: hidden;
+}
+
+/* Plynnosc pojawiania sie popovera powiadomien */
+.toast-popover:popover-open {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .toast-popover {
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.18s ease-out, transform 0.18s ease-out;
+    transition-behavior: allow-discrete;
+  }
+
+  .toast-popover:popover-open {
+    @starting-style {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+}
+
+/* Dedykowany arkusz stylow druku A4 dla protokolu z posiedzenia */
+@page {
+  size: A4 portrait;
+  margin: 14mm;
+}
+
+@media print {
+  html,
+  body,
+  .bg-cork-dots {
+    background: #ffffff !important;
+    background-image: none !important;
+    color: #1c1917 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .note-deferred {
+    content-visibility: visible !important;
+  }
+
+  .sticky-note-paper {
+    transform: none !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    box-shadow: none !important;
+    min-height: 0 !important;
+  }
+
+  .sticky-note-curl::after {
+    display: none !important;
+  }
+}
