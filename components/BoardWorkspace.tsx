@@ -28,6 +28,7 @@ import {
 import { DEMO_EMERGENCY_ADMIN_TOKEN } from "@/lib/demo-data";
 import { exportStickyNotesToXlsx } from "@/lib/export-xlsx";
 import { OrganizationIcon } from "@/lib/icons";
+import { PinRotationWidget } from "@/components/PinRotationWidget";
 import {
   generateOwnerToken,
   getOwnedNotesSnapshot,
@@ -1297,6 +1298,20 @@ export function BoardWorkspace({
             </span>
           </div>
         </header>
+
+        {/* Widżet rotacji i zmiany PIN-u dla Zarządu */}
+        {canAdmin && (
+          <div className="no-print">
+            <PinRotationWidget
+              boardId={board.id}
+              currentPin={board.pin_code ?? "123456"}
+              pinUpdatedAt={board.pin_updated_at ?? null}
+              onPinChange={(newPin) => {
+                showToast(`Zmieniono PIN tablicy na: ${newPin}`, "success");
+              }}
+            />
+          </div>
+        )}
 
         {isDemoMode ? (
           <div className="no-print flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-300 bg-amber-50/90 px-3.5 py-2 text-xs text-amber-950">
