@@ -32,9 +32,10 @@ export type OrganizationRow = {
 
 export type AdminPermissionRow = {
   id: string;
-  user_id: string;
+  user_id?: string | null;
+  user_email?: string | null;
   tenant_id: string;
-  role: "owner" | "board_admin" | "editor";
+  role: "superadmin" | "owner" | "board_admin" | "editor";
   created_at: string;
 };
 
@@ -125,16 +126,18 @@ export type Database = {
         Row: AdminPermissionRow;
         Insert: {
           id?: string;
-          user_id: string;
+          user_id?: string | null;
+          user_email?: string | null;
           tenant_id: string;
-          role?: "owner" | "board_admin" | "editor";
+          role?: "superadmin" | "owner" | "board_admin" | "editor";
           created_at?: string;
         };
         Update: {
           id?: string;
-          user_id?: string;
+          user_id?: string | null;
+          user_email?: string | null;
           tenant_id?: string;
-          role?: "owner" | "board_admin" | "editor";
+          role?: "superadmin" | "owner" | "board_admin" | "editor";
           created_at?: string;
         };
         Relationships: [
@@ -157,6 +160,8 @@ export type Database = {
           access_slug: string;
           color_legend?: ColorLegend;
           is_locked?: boolean;
+          pin_code?: string | null;
+          pin_updated_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -168,6 +173,8 @@ export type Database = {
           access_slug?: string;
           color_legend?: ColorLegend;
           is_locked?: boolean;
+          pin_code?: string | null;
+          pin_updated_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };

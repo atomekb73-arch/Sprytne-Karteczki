@@ -1266,6 +1266,7 @@ export function BoardWorkspace({
               currentBoardSlug={board.access_slug}
               userEmail={initialBundle.userEmail}
               tenants={initialBundle.adminTenants}
+              isSuperadmin={initialBundle.isSuperadmin}
               loginRedirectPath={`/b/${board.access_slug}`}
             />
           </div>

@@ -55,7 +55,7 @@ export interface StickyNoteRecord {
 
 export interface AdminTenantSummary {
   tenant_id: string;
-  role: "owner" | "board_admin" | "editor";
+  role: "superadmin" | "owner" | "board_admin" | "editor";
   organization: OrganizationRecord;
   boards: Pick<BoardRecord, "id" | "title" | "access_slug" | "is_locked" | "updated_at">[];
 }
@@ -67,6 +67,7 @@ export interface BoardPageBundle {
   isAuthenticatedAdmin: boolean;
   userEmail: string | null;
   adminTenants: AdminTenantSummary[];
+  isSuperadmin?: boolean;
   isDemoMode?: boolean;
 }
 

@@ -19,32 +19,51 @@ export async function fetchAdminTenantsForCurrentUser(): Promise<{
   userId: string | null;
   userEmail: string | null;
   tenants: AdminTenantSummary[];
+  isSuperadmin: boolean;
 }> {
   if (!isSupabasePublicConfigured()) {
-    return { userId: null, userEmail: null, tenants: [] };
+    return { userId: null, userEmail: null, tenants: [], isSuperadmin: false };
   }
 
   const supabase = await createClient();
   const { data: claimsData } = await supabase.auth.getClaims();
   const claims = claimsData?.claims;
   const userId = typeof claims?.sub === "string" ? claims.sub : null;
-
-  if (!userId) {
-    return { userId: null, userEmail: null, tenants: [] };
-  }
-
   const userEmail = typeof claims?.email === "string" ? claims.email : null;
 
-  const { data: permissions, error: permError } = await supabase
-    .from("admin_permissions")
-    .select("tenant_id, role")
-    .eq("user_id", userId);
-
-  if (permError || !permissions || permissions.length === 0) {
-    return { userId, userEmail, tenants: [] };
+  if (!userId && !userEmail) {
+    return { userId: null, userEmail: null, tenants: [], isSuperadmin: false };
   }
 
-  const tenantIds = Array.from(new Set(permissions.map((p) => p.tenant_id)));
+  // Pobierz uprawnienia wg user_id lub lower(user_email)
+  const permQuery = supabase.from("admin_permissions").select("tenant_id, role, user_email, user_id");
+  let permissions: { tenant_id: string; role: string; user_email?: string | null; user_id?: string | null }[] = [];
+
+  if (userId && userEmail) {
+    const { data, error } = await permQuery.or(`user_id.eq.${userId},user_email.ilike.${userEmail}`);
+    if (!error && data) permissions = data;
+  } else if (userId) {
+    const { data, error } = await permQuery.eq("user_id", userId);
+    if (!error && data) permissions = data;
+  } else if (userEmail) {
+    const { data, error } = await permQuery.ilike("user_email", userEmail);
+    if (!error && data) permissions = data;
+  }
+
+  const isSuperadmin = permissions.some((p) => p.role === "superadmin" || p.role === "owner");
+
+  // Jeśli użytkownik jest superadminem, ma dostęp do WSZYSTKICH organizacji
+  let tenantIds: string[] = [];
+  if (isSuperadmin) {
+    const { data: allOrgs } = await supabase.from("organizations").select("tenant_id");
+    tenantIds = Array.from(new Set((allOrgs ?? []).map((o) => o.tenant_id)));
+  } else {
+    tenantIds = Array.from(new Set(permissions.map((p) => p.tenant_id)));
+  }
+
+  if (tenantIds.length === 0) {
+    return { userId, userEmail, tenants: [], isSuperadmin: false };
+  }
 
   const [{ data: orgs }, { data: boards }] = await Promise.all([
     supabase
@@ -85,7 +104,7 @@ export async function fetchAdminTenantsForCurrentUser(): Promise<{
     if (!org) continue;
     tenants.push({
       tenant_id: tenantId,
-      role: roleMap.get(tenantId) ?? "board_admin",
+      role: (isSuperadmin ? "superadmin" : roleMap.get(tenantId) ?? "board_admin") as AdminTenantSummary["role"],
       organization: org,
       boards: boardsByTenant.get(tenantId) ?? [],
     });
@@ -99,7 +118,7 @@ export async function fetchAdminTenantsForCurrentUser(): Promise<{
     return a.organization.name.localeCompare(b.organization.name, "pl");
   });
 
-  return { userId, userEmail, tenants };
+  return { userId, userEmail, tenants, isSuperadmin };
 }
 
 export async function fetchBoardBundleBySlug(
@@ -144,9 +163,9 @@ export async function fetchBoardBundleBySlug(
     color_legend: normalizeColorLegend(boardRow.color_legend),
   };
 
-  const isAuthenticatedAdmin = adminState.tenants.some(
-    (t) => t.tenant_id === board.tenant_id
-  );
+  const isAuthenticatedAdmin =
+    adminState.isSuperadmin ||
+    adminState.tenants.some((t) => t.tenant_id === board.tenant_id);
 
   return {
     board,
@@ -155,6 +174,7 @@ export async function fetchBoardBundleBySlug(
     isAuthenticatedAdmin,
     userEmail: adminState.userEmail,
     adminTenants: adminState.tenants,
+    isSuperadmin: adminState.isSuperadmin,
   };
 }
 

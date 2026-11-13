@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { ArrowRight, Lock, Mail, Search, X } from "lucide-react";
 import { CRM_SYSTEM_LABELS } from "@/lib/constants";
@@ -28,6 +29,8 @@ export function EcosystemDirectory({
   organizations,
   boards,
 }: EcosystemDirectoryProps) {
+  const router = useRouter();
+  const [openingTenantId, setOpeningTenantId] = useState<string | null>(null);
   const [unitTypeFilter, setUnitTypeFilter] = useState<"all" | "admin" | "club">(
     "all"
   );
@@ -177,6 +180,31 @@ export function EcosystemDirectory({
     }
   };
 
+  const handleOpenUnitBoard = async (tenantId: string) => {
+    // 1. Sprawdź czy mamy już tablicę w boards
+    const existing = boards.find((b) => b.tenant_id === tenantId);
+    if (existing?.access_slug) {
+      router.push(`/b/${existing.access_slug}`);
+      return;
+    }
+
+    // 2. Jeśli nie, pobierz lub utwórz przez endpoint
+    setOpeningTenantId(tenantId);
+    try {
+      const res = await fetch(`/api/organizations/${tenantId}/board`);
+      const data = await res.json();
+      if (data.slug) {
+        router.push(`/b/${data.slug}`);
+      } else {
+        router.push(`/b/${tenantId}-start`);
+      }
+    } catch {
+      router.push(`/b/${tenantId}-start`);
+    } finally {
+      setOpeningTenantId(null);
+    }
+  };
+
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -312,18 +340,16 @@ export function EcosystemDirectory({
         {visibleUnitPills.map(({ org, meta }) => {
           const isSelected = selectedTenantId === org.tenant_id;
           const boardCount = boardCountsByTenant.get(org.tenant_id) ?? 0;
+          const isOpening = openingTenantId === org.tenant_id;
 
           return (
             <button
               key={org.tenant_id}
               type="button"
-              onClick={() =>
-                setSelectedTenantId((prev) =>
-                  prev === org.tenant_id ? ALL_VIEWS_UNIT.tenant_id : org.tenant_id
-                )
-              }
+              onClick={() => void handleOpenUnitBoard(org.tenant_id)}
+              disabled={isOpening}
               aria-pressed={isSelected}
-              title={meta.email ? `${meta.name} (${meta.email})` : meta.name}
+              title={`Otwórz tablicę: ${meta.name} (${meta.email ?? ""})`}
               style={{
                 backgroundColor: meta.light_bg_hex,
                 borderColor: isSelected ? meta.primary_hex : `${meta.primary_hex}3D`,
@@ -334,7 +360,7 @@ export function EcosystemDirectory({
               }}
               className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs shadow-2xs transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-900 ${
                 isSelected ? "font-bold" : "font-medium"
-              }`}
+              } ${isOpening ? "animate-pulse opacity-60" : ""}`}
             >
               <span aria-hidden="true">{meta.emoji}</span>
               <span style={{ color: meta.primary_hex }} className="shrink-0">
@@ -355,8 +381,8 @@ export function EcosystemDirectory({
                   color: "#1C1917",
                 }}
               >
-                {meta.badge_code}
-                {boardCount > 1 ? ` · ${boardCount}` : ""}
+                {isOpening ? "Otwieranie..." : meta.badge_code}
+                {!isOpening && boardCount > 1 ? ` · ${boardCount}` : ""}
               </span>
             </button>
           );

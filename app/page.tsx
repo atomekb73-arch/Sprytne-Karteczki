@@ -50,6 +50,7 @@ async function HomeNavTenantSlot() {
     <TenantSwitcher
       userEmail={adminState.userEmail}
       tenants={adminState.tenants}
+      isSuperadmin={adminState.isSuperadmin}
       loginRedirectPath="/"
     />
   );
