@@ -139,7 +139,7 @@ export default function HomePage() {
               Wirtualna tablica pomysłów i burz mózgów dla studentów WSKZ
             </h1>
             <p className="text-sm leading-relaxed text-stone-600 sm:text-base">
-              Zbieraj pomysły podczas spotkań Google Meet bez logowania członków, przypinaj priorytety Zarządu, eksportuj protokoły A4 / Excel oraz wypychaj wybrane inicjatywy jednym kliknięciem do CRM Kancelarii Samorządu i CRM Kół Naukowych.
+              Zbieraj pomysły podczas spotkań Google Meet bez logowania członków, przypinaj priorytety Zarządu, eksportuj protokoły A4 / Excel oraz przekazuj wybrane inicjatywy jednym kliknięciem do CRM Kancelarii Samorządu i CRM Kół Naukowych.
             </p>
             <div className="pt-1">
               <HomeSlugJumpForm />
@@ -150,28 +150,28 @@ export default function HomePage() {
             <div className="rounded-xl border border-stone-200/80 bg-[#FEF08A]/45 p-4">
               <p className="flex items-center gap-1.5 text-xs font-bold text-stone-900">
                 <Layers className="h-4 w-4" aria-hidden="true" />
-                <span>Mechanika LIFO od góry</span>
+                <span>Najnowsze pomysły zawsze na górze</span>
               </p>
               <p className="mt-1 text-xs leading-relaxed text-stone-700">
-                Nowe karteczki zawsze lądują w lewym górnym rogu głównego strumienia, a strefa „Przypięte przez Zarząd” chroni maksymalnie 4 priorytety.
+                Nowo dodane karteczki pojawiają się od razu w lewym górnym rogu tablicy, przesuwając starsze niżej. Na samej górze Zarząd może dodatkowo przypiąć do 4 najważniejszych ogłoszeń, aby zawsze były pod ręką.
               </p>
             </div>
             <div className="rounded-xl border border-stone-200/80 bg-[#BAE6FD]/45 p-4">
               <p className="flex items-center gap-1.5 text-xs font-bold text-stone-900">
                 <Radio className="h-4 w-4" aria-hidden="true" />
-                <span>Zero tarcia dla studentów</span>
+                <span>Szybki dostęp bez rejestracji</span>
               </p>
               <p className="mt-1 text-xs leading-relaxed text-stone-700">
-                Członkowie wchodzą przez prywatny link <code className="font-mono">/b/slug</code>, a Zarząd korzysta z Multi-Tenant Switchera lub klucza awaryjnego.
+                Członkowie koła wchodzą na tablicę jednym kliknięciem przez dedykowany link, bez zakładania konta. Członkowie Zarządu mogą płynnie przełączać się między swoimi jednostkami lub zarządzać tablicą przez link administracyjny.
               </p>
             </div>
             <div className="rounded-xl border border-stone-200/80 bg-[#BBF7D0]/45 p-4">
               <p className="flex items-center gap-1.5 text-xs font-bold text-stone-900">
                 <Database className="h-4 w-4" aria-hidden="true" />
-                <span>Dwukierunkowy CRM WSKZ</span>
+                <span>Dwukierunkowa współpraca z CRM</span>
               </p>
               <p className="mt-1 text-xs leading-relaxed text-stone-700">
-                Wypychanie webhookiem <code className="font-mono">/api/crm/push</code> oraz zaciąganie harmonogramu przez <code className="font-mono">/api/crm/import</code> i tryb <code className="font-mono">?embed=true</code>.
+                Tablica jest na stałe połączona z CRM Kancelarii Samorządu i Kół Naukowych — wybrane pomysły można przekazać do realizacji jednym kliknięciem lub bezpośrednio pobrać do harmonogramu prac.
               </p>
             </div>
           </div>

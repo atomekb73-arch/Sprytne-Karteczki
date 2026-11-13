@@ -185,7 +185,7 @@ export function EcosystemDirectory({
             Aktywne tablice jednostek wydziałowych, Samorządu i Kół Naukowych WSKZ
           </h2>
           <p className="text-xs font-medium text-stone-600">
-            Spójny słownik {orderedUnits.length} jednostek z Generatora Formularzy i CRM — wybierz jednostkę lub otwórz tablicę bez logowania
+            Wybierz koło naukowe lub jednostkę WSKZ, aby przejść do jej tablicy pomysłów.
           </p>
         </div>
 
