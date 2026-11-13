@@ -240,14 +240,14 @@ export function QuickAddBar({
         <div className="flex flex-col gap-2.5 sm:gap-3 lg:flex-row lg:items-start lg:gap-4">
           {/* Kolumna 1: Kolory + kategoria z legendy + autor (na mobile w jednym wierszu flex-row, na lg: flex-col) */}
           <div className="flex flex-row items-start justify-between gap-2.5 sm:gap-4 lg:w-80 lg:shrink-0 lg:flex-col lg:gap-2.5">
-            {/* Lewa strona: Kolor i pigułka kategorii */}
-            <fieldset disabled={isLocked || isSubmitting} className="min-w-0 flex-1 space-y-1 sm:space-y-1.5 lg:w-full">
+            {/* Lewa strona: Kolor i pigułka kategorii (shrink-0, by kółka nigdy nie były zgniatane) */}
+            <fieldset disabled={isLocked || isSubmitting} className="shrink-0 space-y-1 sm:space-y-1.5 lg:w-full">
               <legend className="text-xs font-semibold text-stone-700">
                 <span className="sm:hidden">1. Kolor</span>
                 <span className="hidden sm:inline">1. Wybierz kolor</span>
                 <span className="hidden lg:inline"> (kategoria z legendy)</span>
               </legend>
-              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+              <div className="flex flex-nowrap items-center gap-1.5 sm:gap-2">
                 {NOTE_COLORS.map((color) => {
                   const theme = NOTE_COLOR_THEMES[color];
                   const isSelected = selectedColor === color;
@@ -256,7 +256,7 @@ export function QuickAddBar({
                     <label
                       key={color}
                       title={label}
-                      className={`relative flex h-7 w-7 sm:h-8 sm:h-8 lg:h-9 lg:w-9 cursor-pointer items-center justify-center rounded-full border-2 transition-transform ${
+                      className={`relative flex h-7 w-7 sm:h-8 sm:w-8 lg:h-9 lg:w-9 shrink-0 aspect-square cursor-pointer items-center justify-center rounded-full border-2 transition-transform ${
                         theme.bgClass
                       } ${
                         isSelected
@@ -282,15 +282,15 @@ export function QuickAddBar({
               </div>
               <p
                 aria-live="polite"
-                className={`inline-flex max-w-full items-center gap-1.5 truncate rounded-lg border px-2 py-0.5 sm:px-2.5 sm:py-1 text-[11px] sm:text-xs font-medium text-stone-900 ${activeTheme.bgClass} ${activeTheme.borderClass}`}
+                className={`inline-flex max-w-[170px] sm:max-w-none items-center gap-1.5 truncate rounded-lg border px-2 py-0.5 sm:px-2.5 sm:py-1 text-[11px] sm:text-xs font-medium text-stone-900 ${activeTheme.bgClass} ${activeTheme.borderClass}`}
               >
                 <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 shrink-0 rounded-full bg-stone-900/60" aria-hidden="true" />
                 <span className="truncate">{colorLegend[selectedColor]}</span>
               </p>
             </fieldset>
 
-            {/* Prawa strona na mobile / dół na lg: Podpis / Imię */}
-            <div className="shrink-0 lg:w-full">
+            {/* Prawa strona na mobile / dół na lg: Podpis / Imię (elastyczna szerokość flex-1 z ograniczeniem max-w) */}
+            <div className="min-w-0 flex-1 max-w-[180px] sm:max-w-[220px] lg:max-w-none lg:w-full">
               <label
                 htmlFor={authorId}
                 className="mb-1 block text-xs font-semibold text-stone-700"
@@ -308,7 +308,7 @@ export function QuickAddBar({
                 maxLength={MAX_AUTHOR_LENGTH}
                 placeholder="np. Anna K."
                 autoComplete="name"
-                className="h-8 w-32 rounded-xl border border-stone-300 bg-stone-50/70 px-2.5 py-1 text-xs text-stone-900 placeholder:text-stone-400 focus:border-stone-900 focus:bg-white focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 sm:h-9 sm:w-48 sm:px-3 sm:py-1.5 sm:text-sm md:w-56 lg:h-auto lg:w-full lg:px-3 lg:py-2"
+                className="h-8 w-full rounded-xl border border-stone-300 bg-stone-50/70 px-2.5 py-1 text-xs text-stone-900 placeholder:text-stone-400 focus:border-stone-900 focus:bg-white focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 sm:h-9 sm:px-3 sm:py-1.5 sm:text-sm lg:h-auto lg:px-3 lg:py-2"
               />
             </div>
           </div>
