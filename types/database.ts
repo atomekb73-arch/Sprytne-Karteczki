@@ -295,6 +295,23 @@ export type Database = {
         };
         Returns: boolean;
       };
+      merge_sticky_notes: {
+        Args: {
+          p_source_note_id: string;
+          p_target_note_id: string;
+          p_board_id: string;
+          p_token?: string | null;
+        };
+        Returns: Json;
+      };
+      update_board_pin: {
+        Args: {
+          p_board_id: string;
+          p_new_pin: string;
+          p_admin_token?: string | null;
+        };
+        Returns: Json;
+      };
     };
     Enums: {
       [_ in never]: never;

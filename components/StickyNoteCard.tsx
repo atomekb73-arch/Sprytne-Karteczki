@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Check, Pencil, Pin, PinOff, Send, ThumbsUp, Trash2 } from "lucide-react";
+import { Check, GitMerge, Pencil, Pin, PinOff, Send, ThumbsUp, Trash2 } from "lucide-react";
 import { useId, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import {
   MAX_AUTHOR_LENGTH,
@@ -29,6 +29,7 @@ interface StickyNoteCardProps {
   onTogglePin: (note: StickyNoteRecord) => void;
   onSendToCrm: (noteId: string) => void;
   onDeleteNote: (noteId: string) => void;
+  onRequestMerge?: (sourceNote: StickyNoteRecord) => void;
   onOwnerEditNote: (
     noteId: string,
     payload: { content: string; authorName: string; color: NoteColor }
@@ -65,6 +66,7 @@ export function StickyNoteCard({
   onTogglePin,
   onSendToCrm,
   onDeleteNote,
+  onRequestMerge,
   onOwnerEditNote,
   onOwnerDeleteNote,
 }: StickyNoteCardProps) {
@@ -514,6 +516,19 @@ export function StickyNoteCard({
               </button>
 
               <div className="flex items-center gap-1">
+                {onRequestMerge ? (
+                  <button
+                    type="button"
+                    onClick={() => onRequestMerge(note)}
+                    aria-label="Scal duplikat z inną karteczką"
+                    title="Scal tę karteczkę z inną (połącz głosy i autorów)"
+                    className="inline-flex items-center gap-1 rounded-md border border-stone-300 bg-white/90 px-2 py-1 text-[11px] font-semibold text-stone-800 transition hover:bg-stone-100"
+                  >
+                    <GitMerge className="h-3 w-3 text-stone-700" aria-hidden="true" />
+                    <span>Scal</span>
+                  </button>
+                ) : null}
+
                 <button
                   type="button"
                   onClick={() => onSendToCrm(note.id)}

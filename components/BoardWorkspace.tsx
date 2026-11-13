@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { BoardGrid } from "@/components/BoardGrid";
 import { FilterBar } from "@/components/FilterBar";
+import { MergeNotesModal } from "@/components/MergeNotesModal";
 import { PrintProtocolHeader } from "@/components/PrintProtocolHeader";
 import { QuickAddBar } from "@/components/QuickAddBar";
 import { TenantSwitcher } from "@/components/TenantSwitcher";
@@ -125,6 +126,7 @@ export function BoardWorkspace({
   );
 
   const [selectedNoteIds, setSelectedNoteIds] = useState<Set<string>>(() => new Set());
+  const [mergeSourceNote, setMergeSourceNote] = useState<StickyNoteRecord | null>(null);
 
   const [emergencyToken, setEmergencyToken] = useState<string | null>(null);
   const [realtimeSubscribed, setRealtimeSubscribed] = useState(false);
@@ -805,6 +807,86 @@ export function BoardWorkspace({
     ]
   );
 
+  const handleConfirmMergeNotes = useCallback(
+    async (sourceNoteId: string, targetNoteId: string): Promise<boolean> => {
+      if (!canAdmin) return false;
+      setIsBusyAdminAction(true);
+
+      try {
+        if (isDemoMode) {
+          const source = notes.find((n) => n.id === sourceNoteId);
+          const target = notes.find((n) => n.id === targetNoteId);
+          if (!source || !target) {
+            throw new Error("Nie znaleziono scalanych karteczek.");
+          }
+
+          let combinedAuthor = target.author_name;
+          if (
+            source.author_name &&
+            source.author_name !== "Anonimowy Student" &&
+            source.author_name !== target.author_name
+          ) {
+            combinedAuthor =
+              target.author_name === "Anonimowy Student"
+                ? source.author_name
+                : `${target.author_name}, ${source.author_name}`.slice(0, 80);
+          }
+
+          const updatedTarget: StickyNoteRecord = {
+            ...target,
+            upvotes: target.upvotes + source.upvotes,
+            author_name: combinedAuthor,
+            is_pinned: target.is_pinned || source.is_pinned,
+            sent_to_crm: target.sent_to_crm || source.sent_to_crm,
+            updated_at: new Date().toISOString(),
+          };
+
+          removeOwnedNoteToken(sourceNoteId);
+          setNotes((prev) =>
+            prev.filter((n) => n.id !== sourceNoteId).map((n) => (n.id === targetNoteId ? updatedTarget : n))
+          );
+        } else {
+          const supabase = createClient();
+          const { data, error } = await supabase.rpc("merge_sticky_notes", {
+            p_source_note_id: sourceNoteId,
+            p_target_note_id: targetNoteId,
+            p_board_id: board.id,
+            p_token: emergencyToken ?? null,
+          });
+
+          if (error) {
+            throw new Error(error.message);
+          }
+
+          const result = data as unknown as {
+            success: boolean;
+            merged_note: StickyNoteRecord;
+            deleted_source_id: string;
+          };
+
+          removeOwnedNoteToken(sourceNoteId);
+          setNotes((prev) =>
+            prev
+              .filter((n) => n.id !== sourceNoteId)
+              .map((n) => (n.id === targetNoteId ? (result.merged_note ?? n) : n))
+          );
+        }
+
+        showToast("Pomyślnie scalono karteczki (głosy zostały zsumowane).", "success");
+        return true;
+      } catch (err) {
+        showToast(
+          err instanceof Error ? err.message : "Nie udało się scalić karteczek.",
+          "error"
+        );
+        return false;
+      } finally {
+        setIsBusyAdminAction(false);
+      }
+    },
+    [board.id, canAdmin, emergencyToken, isDemoMode, notes, showToast]
+  );
+
   const handleToggleBoardLock = useCallback(async () => {
     if (!canAdmin) return;
     setIsBusyAdminAction(true);
@@ -1220,32 +1302,8 @@ export function BoardWorkspace({
                   </div>
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <span aria-hidden="true" className="text-sm leading-none">
-                        {orgMeta.emoji}
-                      </span>
                       <span className="text-xs font-bold tracking-wide text-stone-700 uppercase">
                         {orgMeta.list_name}
-                      </span>
-                      <span
-                        style={{
-                          backgroundColor: orgMeta.light_bg_hex,
-                          borderColor: `${orgMeta.primary_hex}4D`,
-                          color: "#1C1917",
-                        }}
-                        className="rounded-md border px-2 py-0.5 font-mono text-[10px] font-bold"
-                      >
-                        {orgMeta.badge_code}
-                      </span>
-                      {orgMeta.name !== orgMeta.list_name ? (
-                        <span className="text-xs font-medium text-stone-600">
-                          ({orgMeta.name})
-                        </span>
-                      ) : null}
-                      <span className="rounded-md bg-stone-200/80 px-2 py-0.5 font-mono text-[10px] font-medium text-stone-700">
-                        {organization.tenant_id}
-                      </span>
-                      <span className="rounded-md border border-stone-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-stone-700">
-                        {CRM_SYSTEM_LABELS[organization.crm_system]}
                       </span>
                       {orgMeta.email ? (
                         <a
@@ -1272,7 +1330,7 @@ export function BoardWorkspace({
 
           <div className="flex shrink-0 items-center gap-2 self-start sm:self-center">
             <span
-              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${
+              className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${
                 isOffline
                   ? "border-amber-300 bg-amber-50 text-amber-900"
                   : isRealtimeLive
@@ -1280,19 +1338,23 @@ export function BoardWorkspace({
                     : "border-stone-300 bg-white text-stone-700"
               }`}
             >
-              <Radio
-                className={`h-3.5 w-3.5 ${
-                  isRealtimeLive && !isOffline ? "animate-pulse text-emerald-600" : ""
-                }`}
-                aria-hidden="true"
-              />
+              {isOffline ? (
+                <Radio className="h-3.5 w-3.5 text-amber-700" aria-hidden="true" />
+              ) : isRealtimeLive ? (
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                </span>
+              ) : (
+                <Radio className="h-3.5 w-3.5 text-stone-400" aria-hidden="true" />
+              )}
               <span>
                 {isOffline
                   ? "Offline (podgląd)"
                   : isDemoMode
                     ? "Podgląd lokalny (Demo)"
                     : isRealtimeLive
-                      ? "Live sync (Google Meet)"
+                      ? "Synchronizacja na żywo"
                       : "Synchronizacja..."}
               </span>
             </span>
@@ -1346,6 +1408,8 @@ export function BoardWorkspace({
           colorLegend={board.color_legend}
           isLocked={board.is_locked}
           isOffline={isOffline}
+          existingNotes={notes}
+          onUpvoteNote={handleUpvote}
           onAddNote={handleAddNote}
         />
 
@@ -1404,6 +1468,7 @@ export function BoardWorkspace({
           onTogglePin={handleTogglePin}
           onSendToCrm={(noteId) => void handleSendToCrm([noteId])}
           onDeleteNote={(noteId) => void handleDeleteNotes([noteId])}
+          onRequestMerge={(sourceNote) => setMergeSourceNote(sourceNote)}
           onOwnerEditNote={handleOwnerEditNote}
           onOwnerDeleteNote={handleOwnerDeleteNote}
           onResetFilters={() => {
@@ -1411,6 +1476,16 @@ export function BoardWorkspace({
             setSelectedAuthor("all");
             setSearchQuery("");
           }}
+        />
+
+        {/* Modal scalania duplikatu */}
+        <MergeNotesModal
+          sourceNote={mergeSourceNote}
+          availableNotes={notes}
+          colorLegend={board.color_legend}
+          isOpen={mergeSourceNote !== null}
+          onClose={() => setMergeSourceNote(null)}
+          onConfirmMerge={handleConfirmMergeNotes}
         />
       </main>
     </div>

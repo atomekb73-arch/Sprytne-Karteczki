@@ -129,6 +129,10 @@ export function FilterBar({
     }
   };
 
+  if (totalNotesCount === 0) {
+    return null;
+  }
+
   return (
     <section
       aria-label="Legenda kolorów, filtry oraz narzędzia eksportu"
@@ -263,27 +267,9 @@ export function FilterBar({
           ) : null}
         </search>
 
-        {/* Akcje eksportu, linku członków oraz druku A4 */}
+        {/* Akcje linku członków */}
         <div className="flex flex-wrap items-center gap-2">
           <CopyLinkButton value={memberShareUrl} label="Link dla członków" />
-
-          <button
-            type="button"
-            onClick={onExportXlsx}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-xs font-semibold text-stone-800 shadow-2xs transition hover:border-stone-400 hover:bg-stone-50"
-          >
-            <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-700" aria-hidden="true" />
-            <span>Eksport .xlsx</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={onPrintProtocol}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-xs font-semibold text-stone-800 shadow-2xs transition hover:border-stone-400 hover:bg-stone-50"
-          >
-            <Printer className="h-3.5 w-3.5 text-stone-700" aria-hidden="true" />
-            <span>Drukuj / Protokół PDF</span>
-          </button>
         </div>
       </div>
 
@@ -298,6 +284,25 @@ export function FilterBar({
                 {adminSource === "token" ? "Klucz awaryjny" : "Konto Zarządu"})
               </span>
             </span>
+
+            {/* Narzędzia eksportu i wydruku wyłącznie dla Zarządu */}
+            <button
+              type="button"
+              onClick={onExportXlsx}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-stone-300 bg-white px-2.5 py-1 text-xs font-semibold text-stone-800 shadow-2xs transition hover:border-stone-400 hover:bg-stone-50"
+            >
+              <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-700" aria-hidden="true" />
+              <span>Eksport .xlsx</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={onPrintProtocol}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-stone-300 bg-white px-2.5 py-1 text-xs font-semibold text-stone-800 shadow-2xs transition hover:border-stone-400 hover:bg-stone-50"
+            >
+              <Printer className="h-3.5 w-3.5 text-stone-700" aria-hidden="true" />
+              <span>Drukuj / Protokół PDF</span>
+            </button>
 
             <button
               type="button"

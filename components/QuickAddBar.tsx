@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useRef, useState, useSyncExternalStore, type FormEvent, type KeyboardEvent } from "react";
-import { AlertCircle, Check, Lock, PlusCircle, ShieldAlert } from "lucide-react";
+import { AlertCircle, Check, Info, Lock, PlusCircle, ShieldAlert, ThumbsUp } from "lucide-react";
 import {
   AUTHOR_STORAGE_KEY,
   MAX_AUTHOR_LENGTH,
@@ -12,11 +12,15 @@ import {
   type ColorLegend,
   type NoteColor,
 } from "@/lib/constants";
+import { findSimilarItem } from "@/lib/duplicate-detector";
+import type { StickyNoteRecord } from "@/types/board";
 
 interface QuickAddBarProps {
   colorLegend: ColorLegend;
   isLocked: boolean;
   isOffline: boolean;
+  existingNotes?: StickyNoteRecord[];
+  onUpvoteNote?: (noteId: string) => void;
   onAddNote: (payload: {
     content: string;
     authorName: string;
@@ -50,6 +54,8 @@ export function QuickAddBar({
   colorLegend,
   isLocked,
   isOffline,
+  existingNotes = [],
+  onUpvoteNote,
   onAddNote,
 }: QuickAddBarProps) {
   const [selectedColor, setSelectedColor] = useState<NoteColor>("yellow");
@@ -67,12 +73,22 @@ export function QuickAddBar({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Ochrona przed podwójnym wysłaniem (Anti-Double-Submit)
+  const lastSubmissionRef = useRef<{
+    contentNormalized: string;
+    authorNormalized: string;
+    timestamp: number;
+  } | null>(null);
+
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const authorInputRef = useRef<HTMLInputElement>(null);
   const colorGroupName = useId();
   const contentId = useId();
   const authorId = useId();
   const errorId = useId();
+
+  // Wykrywanie podobnej karteczki na żywo
+  const similarMatch = findSimilarItem(content, existingNotes);
 
   const handleAuthorChange = (nextValue: string) => {
     const trimmedMax = nextValue.slice(0, MAX_AUTHOR_LENGTH);
@@ -108,6 +124,8 @@ export function QuickAddBar({
   };
 
   const submitForm = async () => {
+    if (isSubmitting) return;
+
     if (isLocked) {
       setSubmitError("Tablica jest obecnie w trybie tylko do odczytu.");
       return;
@@ -125,11 +143,27 @@ export function QuickAddBar({
       return;
     }
 
+    const cleanAuthor = authorName.trim() || "Anonimowy Student";
+    const cleanContent = content.trim();
+
+    // Blokada ponownego wysłania identycznego tekstu przez tego samego autora w ciągu 60 sekund
+    const now = Date.now();
+    if (
+      lastSubmissionRef.current &&
+      lastSubmissionRef.current.contentNormalized === cleanContent.toLowerCase() &&
+      lastSubmissionRef.current.authorNormalized === cleanAuthor.toLowerCase() &&
+      now - lastSubmissionRef.current.timestamp < 60000
+    ) {
+      setSubmitError(
+        "Identyczna karteczka została już dodana przed chwilą. Odczekaj 60 sekund przed powtórzeniem."
+      );
+      return;
+    }
+
     setIsSubmitting(true);
     setSubmitError(null);
 
     try {
-      const cleanAuthor = authorName.trim() || "Anonimowy Student";
       try {
         if (authorName.trim()) {
           window.localStorage.setItem(AUTHOR_STORAGE_KEY, authorName.trim());
@@ -139,12 +173,17 @@ export function QuickAddBar({
       }
 
       const ok = await onAddNote({
-        content: content.trim(),
+        content: cleanContent,
         authorName: cleanAuthor,
         color: selectedColor,
       });
 
       if (ok) {
+        lastSubmissionRef.current = {
+          contentNormalized: cleanContent.toLowerCase(),
+          authorNormalized: cleanAuthor.toLowerCase(),
+          timestamp: Date.now(),
+        };
         setContent("");
         setTouchedContent(false);
         setContentError(null);
@@ -331,6 +370,46 @@ export function QuickAddBar({
                 <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                 <span>{contentError ?? submitError}</span>
               </p>
+            ) : null}
+
+            {/* Boks podpowiedzi podobnej karteczki na żywo */}
+            {similarMatch && !contentError && !submitError ? (
+              <div
+                role="region"
+                aria-label="Podpowiedź podobnej karteczki"
+                className="flex flex-col gap-2 rounded-xl border border-amber-300 bg-amber-50/90 p-3 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="flex items-start gap-2">
+                  <Info className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" aria-hidden="true" />
+                  <div className="text-xs text-amber-950">
+                    <p className="font-semibold">
+                      Podobny pomysł jest już na tablicy:
+                    </p>
+                    <p className="line-clamp-2 text-stone-700">
+                      „{similarMatch.item.content}”{" "}
+                      <span className="font-semibold text-stone-900">
+                        ({similarMatch.item.upvotes} {similarMatch.item.upvotes === 1 ? "głos" : "głosów"})
+                      </span>
+                    </p>
+                  </div>
+                </div>
+
+                {onUpvoteNote ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onUpvoteNote(similarMatch.item.id);
+                      setContent("");
+                      setTouchedContent(false);
+                      setContentError(null);
+                    }}
+                    className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-amber-400 bg-white px-3 py-1.5 text-xs font-bold text-amber-950 shadow-2xs transition hover:bg-amber-100 focus:outline-none"
+                  >
+                    <ThumbsUp className="h-3.5 w-3.5" aria-hidden="true" />
+                    <span>+1 Popieram ten pomysł</span>
+                  </button>
+                ) : null}
+              </div>
             ) : null}
           </div>
         </div>

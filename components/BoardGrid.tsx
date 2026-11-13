@@ -24,6 +24,7 @@ interface BoardGridProps {
   onTogglePin: (note: StickyNoteRecord) => void;
   onSendToCrm: (noteId: string) => void;
   onDeleteNote: (noteId: string) => void;
+  onRequestMerge?: (sourceNote: StickyNoteRecord) => void;
   onOwnerEditNote: (
     noteId: string,
     payload: { content: string; authorName: string; color: NoteColor }
@@ -49,6 +50,7 @@ export function BoardGrid({
   onTogglePin,
   onSendToCrm,
   onDeleteNote,
+  onRequestMerge,
   onOwnerEditNote,
   onOwnerDeleteNote,
   onResetFilters,
@@ -73,6 +75,7 @@ export function BoardGrid({
           onTogglePin={onTogglePin}
           onSendToCrm={onSendToCrm}
           onDeleteNote={onDeleteNote}
+          onRequestMerge={onRequestMerge}
           onOwnerEditNote={onOwnerEditNote}
           onOwnerDeleteNote={onOwnerDeleteNote}
         />
@@ -108,6 +111,7 @@ export function BoardGrid({
                     onTogglePin={onTogglePin}
                     onSendToCrm={onSendToCrm}
                     onDeleteNote={onDeleteNote}
+                    onRequestMerge={onRequestMerge}
                     onOwnerEditNote={onOwnerEditNote}
                     onOwnerDeleteNote={onOwnerDeleteNote}
                   />

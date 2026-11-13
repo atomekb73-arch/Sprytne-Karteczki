@@ -21,6 +21,7 @@ interface PinnedSectionProps {
   onTogglePin: (note: StickyNoteRecord) => void;
   onSendToCrm: (noteId: string) => void;
   onDeleteNote: (noteId: string) => void;
+  onRequestMerge?: (sourceNote: StickyNoteRecord) => void;
   onOwnerEditNote: (
     noteId: string,
     payload: { content: string; authorName: string; color: NoteColor }
@@ -43,6 +44,7 @@ export function PinnedSection({
   onTogglePin,
   onSendToCrm,
   onDeleteNote,
+  onRequestMerge,
   onOwnerEditNote,
   onOwnerDeleteNote,
 }: PinnedSectionProps) {
@@ -94,6 +96,7 @@ export function PinnedSection({
                 onTogglePin={onTogglePin}
                 onSendToCrm={onSendToCrm}
                 onDeleteNote={onDeleteNote}
+                onRequestMerge={onRequestMerge}
                 onOwnerEditNote={onOwnerEditNote}
                 onOwnerDeleteNote={onOwnerDeleteNote}
               />
