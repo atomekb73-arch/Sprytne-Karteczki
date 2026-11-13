@@ -27,14 +27,14 @@ export async function GET() {
     return NextResponse.json({ error: "Wymagane logowanie." }, { status: 401 });
   }
 
-  // Sprawdź czy jest superadminem
+  // Sprawdź czy jest superadminem (obsługuje role 'superadmin' oraz 'owner')
   const { data: userPerms } = await supabase
     .from("admin_permissions")
     .select("tenant_id, role, user_email, user_id");
 
   const isSuperadmin = (userPerms ?? []).some(
     (p) =>
-      p.role === "superadmin" &&
+      (p.role === "superadmin" || p.role === "owner") &&
       ((p.user_email && p.user_email.toLowerCase() === email) || (uid && p.user_id === uid))
   );
 
@@ -42,15 +42,31 @@ export async function GET() {
   const service = createServiceClient();
   const { data: allPerms, error } = await service
     .from("admin_permissions")
-    .select("id, user_email, tenant_id, role, created_at")
+    .select("id, user_email, user_id, tenant_id, role, created_at")
     .order("created_at", { ascending: false });
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  // Pobierz listę użytkowników z auth, aby uzupełnić brakujący user_email
+  let emailMap = new Map<string, string>();
+  try {
+    const { data: authUsers } = await service.auth.admin.listUsers({ perPage: 1000 });
+    if (authUsers?.users) {
+      emailMap = new Map(authUsers.users.map((u) => [u.id, u.email ?? ""]));
+    }
+  } catch {
+    // Ignoruj
+  }
+
+  const enrichedPerms = (allPerms ?? []).map((p) => ({
+    ...p,
+    user_email: p.user_email || (p.user_id ? emailMap.get(p.user_id) ?? null : null),
+  }));
+
   return NextResponse.json({
-    permissions: allPerms ?? [],
+    permissions: enrichedPerms,
     isSuperadmin,
   });
 }
@@ -90,20 +106,20 @@ export async function POST(request: Request) {
 
   const service = createServiceClient();
 
-  // Sprawdź uprawnienia wywołującego
+  // Sprawdź uprawnienia wywołującego (obsługuje role 'superadmin' oraz 'owner')
   const { data: callerPerms } = await service
     .from("admin_permissions")
     .select("tenant_id, role, user_email, user_id");
 
   const isCallerSuperadmin = (callerPerms ?? []).some(
     (p) =>
-      p.role === "superadmin" &&
+      (p.role === "superadmin" || p.role === "owner") &&
       ((p.user_email && p.user_email.toLowerCase() === callerEmail) || (callerUid && p.user_id === callerUid))
   );
 
   const isCallerTenantAdmin = (callerPerms ?? []).some(
     (p) =>
-      (p.tenant_id === tenantId || p.role === "superadmin") &&
+      (p.tenant_id === tenantId || p.role === "superadmin" || p.role === "owner") &&
       ((p.user_email && p.user_email.toLowerCase() === callerEmail) || (callerUid && p.user_id === callerUid))
   );
 
@@ -178,7 +194,7 @@ export async function DELETE(request: Request) {
 
   const isCallerSuperadmin = (callerPerms ?? []).some(
     (p) =>
-      p.role === "superadmin" &&
+      (p.role === "superadmin" || p.role === "owner") &&
       ((p.user_email && p.user_email.toLowerCase() === callerEmail) || (callerUid && p.user_id === callerUid))
   );
 
