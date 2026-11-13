@@ -222,12 +222,12 @@ export function QuickAddBar({
   return (
     <section
       aria-label="Pasek szybkiego dodawania karteczki"
-      className="no-print relative z-20 rounded-2xl border border-stone-300/90 bg-white/95 p-4 shadow-md backdrop-blur-md md:sticky md:top-3"
+      className="no-print relative z-20 rounded-2xl border border-stone-300/90 bg-white/95 p-3.5 shadow-md backdrop-blur-md sm:p-5 md:sticky md:top-3 lg:p-6"
     >
       {isLocked ? (
         <div
           role="status"
-          className="mb-3 flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-950"
+          className="mb-2.5 flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-950 sm:mb-3"
         >
           <Lock className="h-4 w-4 shrink-0 text-amber-700" aria-hidden="true" />
           <span>
@@ -236,15 +236,18 @@ export function QuickAddBar({
         </div>
       ) : null}
 
-      <form onSubmit={handleFormSubmit} noValidate className="space-y-3">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
-          {/* Kolumna 1: Kolory + kategoria z legendy + autor */}
-          <div className="flex flex-col gap-2.5 lg:w-80 lg:shrink-0">
-            <fieldset disabled={isLocked || isSubmitting} className="space-y-1.5">
+      <form onSubmit={handleFormSubmit} noValidate className="space-y-2.5 sm:space-y-3 lg:space-y-4">
+        <div className="flex flex-col gap-2.5 sm:gap-3 lg:flex-row lg:items-start lg:gap-4">
+          {/* Kolumna 1: Kolory + kategoria z legendy + autor (na mobile w jednym wierszu flex-row, na lg: flex-col) */}
+          <div className="flex flex-row items-start justify-between gap-2.5 sm:gap-4 lg:w-80 lg:shrink-0 lg:flex-col lg:gap-2.5">
+            {/* Lewa strona: Kolor i pigułka kategorii */}
+            <fieldset disabled={isLocked || isSubmitting} className="min-w-0 flex-1 space-y-1 sm:space-y-1.5 lg:w-full">
               <legend className="text-xs font-semibold text-stone-700">
-                1. Wybierz kolor (kategoria z legendy)
+                <span className="sm:hidden">1. Kolor</span>
+                <span className="hidden sm:inline">1. Wybierz kolor</span>
+                <span className="hidden lg:inline"> (kategoria z legendy)</span>
               </legend>
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                 {NOTE_COLORS.map((color) => {
                   const theme = NOTE_COLOR_THEMES[color];
                   const isSelected = selectedColor === color;
@@ -253,7 +256,7 @@ export function QuickAddBar({
                     <label
                       key={color}
                       title={label}
-                      className={`relative flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border-2 transition-transform ${
+                      className={`relative flex h-7 w-7 sm:h-8 sm:h-8 lg:h-9 lg:w-9 cursor-pointer items-center justify-center rounded-full border-2 transition-transform ${
                         theme.bgClass
                       } ${
                         isSelected
@@ -271,7 +274,7 @@ export function QuickAddBar({
                         className="sr-only"
                       />
                       {isSelected ? (
-                        <Check className="h-4 w-4 stroke-[2.5] text-stone-900" aria-hidden="true" />
+                        <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4 stroke-[2.5] text-stone-900" aria-hidden="true" />
                       ) : null}
                     </label>
                   );
@@ -279,19 +282,21 @@ export function QuickAddBar({
               </div>
               <p
                 aria-live="polite"
-                className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium text-stone-900 ${activeTheme.bgClass} ${activeTheme.borderClass}`}
+                className={`inline-flex max-w-full items-center gap-1.5 truncate rounded-lg border px-2 py-0.5 sm:px-2.5 sm:py-1 text-[11px] sm:text-xs font-medium text-stone-900 ${activeTheme.bgClass} ${activeTheme.borderClass}`}
               >
-                <span className="h-2 w-2 rounded-full bg-stone-900/60" aria-hidden="true" />
-                <span>{colorLegend[selectedColor]}</span>
+                <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 shrink-0 rounded-full bg-stone-900/60" aria-hidden="true" />
+                <span className="truncate">{colorLegend[selectedColor]}</span>
               </p>
             </fieldset>
 
-            <div>
+            {/* Prawa strona na mobile / dół na lg: Podpis / Imię */}
+            <div className="shrink-0 lg:w-full">
               <label
                 htmlFor={authorId}
                 className="mb-1 block text-xs font-semibold text-stone-700"
               >
-                Twój podpis / Imię
+                <span className="lg:hidden">Podpis / Imię</span>
+                <span className="hidden lg:inline">Twój podpis / Imię</span>
               </label>
               <input
                 ref={authorInputRef}
@@ -301,9 +306,9 @@ export function QuickAddBar({
                 onChange={(e) => handleAuthorChange(e.target.value)}
                 disabled={isLocked || isSubmitting}
                 maxLength={MAX_AUTHOR_LENGTH}
-                placeholder="np. Anna K. (opcjonalnie)"
+                placeholder="np. Anna K."
                 autoComplete="name"
-                className="w-full rounded-xl border border-stone-300 bg-stone-50/70 px-3 py-2 text-sm text-stone-900 placeholder:text-stone-400 focus:border-stone-900 focus:bg-white focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                className="h-8 w-32 rounded-xl border border-stone-300 bg-stone-50/70 px-2.5 py-1 text-xs text-stone-900 placeholder:text-stone-400 focus:border-stone-900 focus:bg-white focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 sm:h-9 sm:w-48 sm:px-3 sm:py-1.5 sm:text-sm md:w-56 lg:h-auto lg:w-full lg:px-3 lg:py-2"
               />
             </div>
           </div>
