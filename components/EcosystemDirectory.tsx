@@ -264,7 +264,7 @@ export function EcosystemDirectory({
             },
             {
               id: "club" as const,
-              label: `Koła Naukowe SKN 01–14 (${clubCount})`,
+              label: `Koła Naukowe (${clubCount})`,
             },
           ].map((tab) => {
             const active = unitTypeFilter === tab.id;
